@@ -1,0 +1,60 @@
+import zipfile
+import threading
+import argparse
+import os
+
+class Parser:
+	def __init__(self):
+		self.args = argparse.ArgumentParser(description="Program to unzip files")
+		self.args.add_argument("--unzip", help="File you want to unzip", type=self.validate_zip_file, required=True)
+		self.args.add_argument("--passwords", help="Passwords you want to try", type=self.validate_password_file, required=True)
+
+		self.args_parsed = self.args.parse_args()
+
+	def get_zip_file(self):
+		return self.args_parsed.unzip
+
+	def get_password_file(self):
+		return self.args_parsed.passwords
+
+	def validate_zip_file(self, zip_file):
+		if not zipfile.is_zipfile(zip_file):
+			print("[-] Invalid zip file.")
+			exit()
+		return zip_file
+
+	def validate_password_file(self, file):
+		if not os.path.isfile(file):
+			print("[-] Invalid file.")
+			exit()
+		return file
+
+
+class ZipCrack(Parser):
+	def __init__(self):
+		super().__init__()
+		self.password_file = self.get_password_file()
+		self.zip_file = self.get_zip_file()
+
+	def extract_file(self, zFile, password):
+		password = password.encode()
+		try:
+			zFile.extractall(pwd=password)
+			print(f"\n[+] Found password {password.decode()}")
+		except:
+			pass
+
+	def extract_zip(self):
+		zFile = zipfile.ZipFile(self.zip_file)
+		passFile = open(self.password_file)
+
+		for line in passFile.readlines():
+			password = line.strip("\n")
+			
+			t = threading.Thread(target=self.extract_file, args=(zFile, password))
+			t.start()
+
+
+
+if __name__ == '__main__':
+	ZipCrack().extract_zip()
